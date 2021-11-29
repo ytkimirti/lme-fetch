@@ -22,6 +22,7 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 DEBUG=True
+MAX_TRIES=10
 
 if (len(sys.argv) >= 2 and sys.argv[1] == "-s"):
     DEBUG=False
@@ -35,6 +36,10 @@ def printgreen(msg):
     if (DEBUG):
         return print(bcolors.OKGREEN + msg + bcolors.ENDC)
     return
+def printred(msg):
+    if (DEBUG):
+        return print(bcolors.FAIL + msg + bcolors.ENDC)
+    return
 
 
 if (DEBUG):
@@ -43,21 +48,72 @@ if (DEBUG):
 printlog("Launching driver...")
 
 options = Options()
-# options.headless = True
+options.headless = True
 
 
-def price_found(price):
-    time_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+def price_found(driver, prices, close_date):
+    time_str = datetime.now().strftime("%d/%m/%Y %H/%M/%S")
+    price_str = ','.join(prices)
     # file = open('data.txt', 'a')
     # file.write(f"{time_str} - {price}\n")
 
-    print(f"{time_str} - {price}")
+    print(f"log_date:{time_str},close_date:{close_date},{price_str}")
 
 
+    printlog("Quitting")
     driver.quit()
-    quit()
+    sys.exit(1)
 
-#This example requires Selenium WebDriver 3.13 or newer
+def fetch_website(driver):
+    printlog("\nTrying...\n")
+    time.sleep(1)
+
+    block_container = driver.find_element(By.CLASS_NAME, "metal-block-container")
+
+    #Scroll to it
+    driver.execute_script("arguments[0].scrollIntoView();", block_container)
+    printgreen("\tScrolled!")
+
+    #Find prices sections
+    printlog("\tSearching for prices sections...")
+    block_sections = driver.find_elements(By.CLASS_NAME, "metal-block-row__blocks")
+
+    if (not block_sections or len(block_sections) < 2):
+        return
+
+    printgreen(f"\tNum sections is {len(block_sections)}!")
+
+    section_to_fetch = block_sections[1]
+    
+    price_elements = section_to_fetch.find_elements(By.CLASS_NAME, "metal-block__inner")
+
+    if (not price_elements):
+        return
+
+    prices = []
+    for element in price_elements:
+        try:
+            price = element.find_element(By.CLASS_NAME, "metal-block__price").text
+            price_float = float(price) # check if it is a number or not
+            name = element.find_element(By.CLASS_NAME, "metal-block__title-text").text
+            prices.append(f"{name}:{price}")
+        except:
+            printred("\tPrices not fully loaded")
+            return
+
+    # Get the date object
+    printlog("\tGetting date element...")
+    date_element = WebDriverWait(driver, 10).until(presence_of_element_located((By.CLASS_NAME, "metal-block-container__refreshed-on")))
+    try:
+        date_str = date_element.text
+    except:
+        return
+    printgreen(f"\tDate is {date_str}!")
+
+    # FINISH IT
+    price_found(driver, prices, date_str)
+
+
 with webdriver.Firefox(options=options) as driver:
     printlog("Loading lme page...")
 
@@ -65,46 +121,12 @@ with webdriver.Firefox(options=options) as driver:
     
     printlog("Page loaded!\n")
 
-    while (True):
-        #Find prices section
-        printlog("\tSearching for prices section...")
-        block_section = driver.find_element(By.CLASS_NAME, "metal-block-container")
-    
-        printgreen("\tFound prices section!")
+    num_tries = 0
 
-        #Scroll to it
-        driver.execute_script("arguments[0].scrollIntoView();", block_section)
-        
-        printgreen("\tScrolled to it!")
-
-        # Wait until that element shows up
-        wait = WebDriverWait(driver, 10)
-
-        printlog("\tWaiting for prices element to load...")
-        first_result = wait.until(presence_of_element_located((By.CLASS_NAME, "metal-block__price")))
-        
-        priceText = ""
-
-        try: 
-            priceText = first_result.text
-        except:
-            continue
-
-        if (priceText):
-            printlog(f"\tPrice text is: {priceText}")
-            
-            try:
-                price_float = float(priceText)
-                printgreen(f"PRICE: {priceText}")
-                price_found(priceText)
-                
-            except ValueError:
-                pass
-                printlog("\tText cannot be converted to float!")
-        # else:
-            printlog("\tElement is null :(")
-        
-        printlog("\nTrying again...\n")
-        time.sleep(1)
-
-  
+    while(num_tries < MAX_TRIES):
+        num_tries += 1
+        try:
+            fetch_website(driver)
+        except Exception as e:
+            printred(e)
+            time.sleep(2)
