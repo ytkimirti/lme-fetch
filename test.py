@@ -8,42 +8,79 @@ from selenium.webdriver.support.expected_conditions import presence_of_element_l
 from selenium.webdriver.firefox.options import Options
 from datetime import datetime
 import time
+import sys
 
-#print("Launching driver...")
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+DEBUG=True
+
+if (len(sys.argv) >= 2 and sys.argv[1] == "-s"):
+    DEBUG=False
+
+def printlog(msg):
+    # return print(msg)
+    if (DEBUG):
+        return print(bcolors.WARNING + msg + bcolors.ENDC)
+    return
+def printgreen(msg):
+    if (DEBUG):
+        return print(bcolors.OKGREEN + msg + bcolors.ENDC)
+    return
+
+
+if (DEBUG):
+    print(bcolors.OKCYAN + "DEBUG MODE" + bcolors.ENDC)
+
+printlog("Launching driver...")
 
 options = Options()
-options.headless = True
+# options.headless = True
+
 
 def price_found(price):
     time_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     # file = open('data.txt', 'a')
     # file.write(f"{time_str} - {price}\n")
+
     print(f"{time_str} - {price}")
+
+
+    driver.quit()
+    quit()
 
 #This example requires Selenium WebDriver 3.13 or newer
 with webdriver.Firefox(options=options) as driver:
-    #print("Loading lme page...")
+    printlog("Loading lme page...")
 
     driver.get("https://www.lme.com/")
     
-    #print("Page loaded!\n")
+    printlog("Page loaded!\n")
 
     while (True):
         #Find prices section
-        #print("\tSearching for prices section...")
+        printlog("\tSearching for prices section...")
         block_section = driver.find_element(By.CLASS_NAME, "metal-block-container")
     
-        #print("\tFound prices section")
+        printgreen("\tFound prices section!")
 
         #Scroll to it
         driver.execute_script("arguments[0].scrollIntoView();", block_section)
         
-        #print("\tScrolled to it")
+        printgreen("\tScrolled to it!")
 
         # Wait until that element shows up
         wait = WebDriverWait(driver, 10)
 
-        #print("\tWaiting for prices element to load...")
+        printlog("\tWaiting for prices element to load...")
         first_result = wait.until(presence_of_element_located((By.CLASS_NAME, "metal-block__price")))
         
         priceText = ""
@@ -54,21 +91,20 @@ with webdriver.Firefox(options=options) as driver:
             continue
 
         if (priceText):
-            #print(f"\tPrice text is: {priceText}")
+            printlog(f"\tPrice text is: {priceText}")
             
             try:
                 price_float = float(priceText)
-                #print(f"PRICE: {priceText}")
+                printgreen(f"PRICE: {priceText}")
                 price_found(priceText)
-                driver.quit()
-                quit()
+                
             except ValueError:
                 pass
-                #print("\tText cannot be converted to float!")
+                printlog("\tText cannot be converted to float!")
         # else:
-            #print("\tElement is null :(")
+            printlog("\tElement is null :(")
         
-        #print("\nTrying again...\n")
+        printlog("\nTrying again...\n")
         time.sleep(1)
 
   
