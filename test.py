@@ -6,12 +6,18 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.expected_conditions import presence_of_element_located
 from selenium.webdriver.firefox.options import Options
+from datetime import datetime
 import time
 
 print("Launching driver...")
 
 options = Options()
 options.headless = True
+
+def price_found(price):
+    file = open('data.txt', 'a')
+    time_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    file.write(f"{time_str} - {price}\n")
 
 #This example requires Selenium WebDriver 3.13 or newer
 with webdriver.Firefox(options=options) as driver:
@@ -46,8 +52,8 @@ with webdriver.Firefox(options=options) as driver:
             
             try:
                 price_float = float(priceText)
-                #FOUND PRICE
                 print(f"PRICE: {priceText}")
+                price_found(priceText)
                 driver.quit()
                 quit()
             except ValueError:
