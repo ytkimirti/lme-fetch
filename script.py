@@ -43,7 +43,7 @@ def printred(msg):
 
 
 if (DEBUG):
-    print(bcolors.OKCYAN + "DEBUG MODE" + bcolors.ENDC)
+    print(bcolors.OKCYAN + "Running in DEBUG MODE, to disable it run the script with the -s flag" + bcolors.ENDC)
 
 printlog("Launching driver...")
 
